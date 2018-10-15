@@ -1,26 +1,60 @@
 import React, { Component } from "react";
-import CarSearchResults from './CarSearchResults';
-import { Button, Segment, Form } from "semantic-ui-react";
+import CarSearchResults from "./CarSearchResults";
+import { Button, Segment, Form, Dropdown, Grid } from "semantic-ui-react";
 import axios from "axios";
+import keys from "../../config/keys";
+
+const config = {
+  headers: {
+    Host: "marketcheck-prod.apigee.net",
+    "Content-Type": "application/json"
+  }
+};
+
+const config2 = {
+  headers: {
+    Host: "marketcheck-prod.apigee.net"
+  }
+};
+const dealershipOptions = [
+  { key: "titan", value: "titan", text: "Titan Auto" },
+  { key: "mercedez", value: "mercedez", text: "Mercedes Regina" }
+];
 export class CarSearchForm extends Component {
   state = {
     result: "",
     search: {
-      year: ""
-    }
+      year: "",
+      dealership: ""
+    },
+    dealerships : ""
   };
 
+  componentDidMount(){
+    const DEALER_URL = "http://api.marketcheck.com/v1/dealers?";
+    const DEALER_NEAR_ZIP = `http://api.marketcheck.com/v1/dealers?api_key=${keys.marketCheckKey}&rows=50&sort_order=asc`;
+    axios
+    .get(
+      DEALER_NEAR_ZIP,
+      config2
+    )
+    .then(res => {
+      const dealerships = res.data;
+      this.setState({ dealerships });
+    });
+  }
+
   onFormSubmit = evt => {
-    const your_api_key = "V78kVFiCxJvr9ZNZZQlFOF4VTEi1GO5f";
     evt.preventDefault();
 
-    const config = {
-        headers: {'Host': 'marketcheck-prod.apigee.net','Content-Type': 'application/json'}
-      };
+    const ROOT_URL = "https://marketcheck-prod.apigee.net/v1/search?";
+
 
     axios
       .get(
-        `https://marketcheck-prod.apigee.net/v1/search?api_key=${your_api_key}&seller_type=dealer&year=${this.state.search.year}
+        `${ROOT_URL}api_key=${keys.marketCheckKey}&seller_type=dealer&year=${
+          this.state.search.year
+        }&country=CA
         `,
         config
       )
@@ -28,6 +62,10 @@ export class CarSearchForm extends Component {
         const result = res.data;
         this.setState({ result });
       });
+  };
+
+  onDealershipSelect = (e, data) => {
+   console.log(data.value)
   };
 
   onInputChange = evt => {
@@ -42,15 +80,30 @@ export class CarSearchForm extends Component {
       <div>
         <Segment>
           <Form onSubmit={this.onFormSubmit}>
-            <Form.Field>
-              <label>Year</label>
-              <input
-                name="year"
-                value={this.state.search.year}
-                onChange={this.onInputChange}
-                placeholder="year"
-              />
-            </Form.Field>
+            <Grid>
+              <Grid.Column width={8}>
+                <Form.Field>
+                  <label>Year</label>
+                  <input
+                    name="year"
+                    value={this.state.search.year}
+                    onChange={this.onInputChange}
+                    placeholder="year"
+                  />
+                </Form.Field>
+              </Grid.Column>
+              <Grid.Column width={8}>
+              <label>Dealership</label>
+                <Dropdown
+                onChange={this.onDealershipSelect}
+                  placeholder="Select Dealership"
+                  fluid
+                  search
+                  selection
+                  options={dealershipOptions}
+                />
+              </Grid.Column>
+            </Grid>
 
             <Button positive type="submit">
               Submit
@@ -61,10 +114,8 @@ export class CarSearchForm extends Component {
           </Form>
         </Segment>
         <Segment>
-          <CarSearchResults results={this.state.result}/>
+          <CarSearchResults results={this.state.result} />
         </Segment>
-
-           
       </div>
     );
   }
